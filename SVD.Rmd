@@ -1,0 +1,150 @@
+---
+title: "Singular Vector Decomposition"
+author: "Karan Ravindran Pillay"
+date: "11/20/2019---12/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Statement: Given a set of manually classified digits (the training set), classify a set of unknown digits (the test set) using SVD method.
+## Data Set
+#### Loading the Data...
+```{r}
+trI <- read.csv("trainInput.csv",header = FALSE)
+trO <- read.csv("trainOutput.csv", header = FALSE)
+teI <- read.csv("testInput.csv",header = FALSE)
+teO <- read.csv("testOutput.csv", header = FALSE)
+```
+
+#### Reorganizing the Data...
+```{r}
+trainInput <- t(trI)
+trainOutput <- t(trO)
+trainData <- cbind(trainInput,trainOutput)
+```
+## Methodology
+#### Form the Matrix *A[[i]]* for Digit i-1(Such That Each Row in *A[[i]]* Represents an Image of Digit i-1). <br>
+#### Determine the Singular Value Decomposition of Each *A[[i]]*(and store it in *S[[i]]*). <br>
+#### Retrieve the First 20 Singular Images of Each Digit(and store them in *V[[i]]*)
+```{r}
+A <- list()
+S <- list()
+V <- list()
+for (i in 1:10){
+  A[[i]] <- subset(trainData, trainData[,257] == i-1)[,-257]
+  S[[i]] <- svd(A[[i]])
+  V[[i]] <- S[[i]]$v[,1:20]
+}
+```
+
+#### Express Test Images as a Linear Combination of the First k=20 Singular Images of Each Digit.<br>
+$$testImage ≈ V[[i]]x$$ <br>
+
+#### Compute the Distance Between Test Images and Their Least Square Approximations and Store in *n[i]*. <br>
+
+#### Classify Each Test Image to be the *digit[j]* Corresponding to the Smallest Residual.
+
+```{r}
+library(MASS)
+n <- c()
+digit <- c()
+for (j in 1: ncol(teI)){
+  for (i in 1:10) {
+  n[i] <- norm(V[[i]] %*% (ginv(V[[i]]) %*% teI[,j]) - teI[j], '2')
+  }
+  digit[j] <- which.min(n)-1
+}
+#digit
+```
+
+#### Calculate the Overall Correct Classification Rate.
+```{r}
+count <- 0
+for(i in 1:ncol(teO)){
+  if(digit[i] == teO[i]){
+    count <- count + 1
+  }
+}
+corrRate <- count/ncol(teO)
+corrRate
+```
+
+#### Calculate the Correct Classification Rate for Each Digit in a Confusion Matrix.
+```{r, warning = FALSE, message = FALSE}
+library(knitr)
+library(kableExtra) 
+library(dplyr)
+predict <- digit
+reference <- t(teO)
+confMat <- as.matrix(table(reference,predict))
+confMat %>%
+  kable(format = "html", caption = "Classification Correct Rate: Reference | Predict -->") %>%
+  kable_styling(font = 20) %>%
+  row_spec(0, bold = T, color = "tomato")
+  
+rate <- c()
+for (i in 1:10){
+  rate[i] <- confMat[i,i]/rowSums(confMat)[i]
+}
+
+df <- cbind(c(0:9),rate)
+colnames(df) <- c("Digit", "CorrRate")
+df %>%
+  kable(format = "html", caption = "Classification Correct Rate") %>%
+  kable_styling(font = 20) %>%
+  row_spec(0, bold = T, color = "tomato")
+```
+
+
+### Summary
+For R Command:<br>
+a. n[3] != n[3] without firstly define n<br>
+b. dataframe[,1] != dataframe[1]. as.matrix(df[,1]) == df[1]<br>
+c. which.min() is for retrieving index of minimum.<br>
+For SVD Application: <br>
+a. Model Comes From V <br>
+b. Using First a Few Concepts Not Features to Represent the Whole <br>
+c. Least Square Method is for Comparing and Classifying <br>
+For Accuracy Result Interpretation: <Br>
+```{r}
+cat("The Highest Predict Accuracy is for Digit: ", which.max(rate)-1,
+    "\nThe Lowest Predict Accuray is for Digit: ", which.min(rate)-1)
+```
+Possiblely because: 
+```{r}
+for(i in 1:10){
+  cat("Digit", i-1, "'s Matrix Dimension is", dim(A[[i]]),"\n")
+}
+```
+From which, we can see:
+```{r}
+num_sample <- c()
+for(i in 1:10){
+  num_sample[i] <- nrow(A[[i]])
+  #cat("Digit", i-1, "'s Has", num_sample[i]," Samples\n")
+}
+cat("The Digit that Has the Largest Sample Number in Training Dataset is ", which.max(num_sample)-1,
+    "\nThe Digit that Has the Lowest Sample Number in Training Dataset is: ", which.min(num_sample)-1)
+```
+
+```{r}
+df <- cbind(num_sample, rate)
+```
+
+```{r}
+library(psych)
+options(repr.plot.width=5, repr.plot.height=5)
+pairs.panels(df[,c("num_sample", "rate")], 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots 
+             ellipses = TRUE # show correlation ellipses
+)
+```
+
+
+#### Thus, we confirm the previous intuitive believe, that the more sample that the model build with, the more accuracy the model may work with.
+
