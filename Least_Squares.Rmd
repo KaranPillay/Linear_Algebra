@@ -1,0 +1,162 @@
+---
+title: "Least Square Model"
+author: "Karan Ravindran Pillay"
+date: "10/9/2019"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+## Reading in Data
+
+```{r}
+d <- read.csv("rating.csv")
+str(d)
+```
+
+## Question 1
+Create a Least Square model to relate the dependent variable quarterback rating to the percentage of completions (Pct Comp).
+
+### Solution
+
+I will separate the required columns and create the **"Observation Vector"** and **"Design Matrix"** to find the relavant **"Parameter Vector"**.
+```{r}
+#Seperating PctComp and  Rating Pts
+PctCompCol <- d[, 6]
+RatingPtsCol <- d[, 14]
+
+#Reading in PctComp and  Rating Pts as Design matrix
+PctCompAppend <- data.matrix(PctCompCol)
+PctCompOne <- matrix(rep(1,nrow = 32), nrow = 32)
+SlrDesignMatrix <- cbind(PctCompOne,PctCompAppend)
+  
+RatingPtsMatrix <- data.matrix(RatingPtsCol)
+
+#Calculating Least Square Model
+library('MASS')
+modelQs1 <- ginv(SlrDesignMatrix)%*%RatingPtsMatrix
+print(modelQs1)
+```
+```{r}
+#Finding the residual vector
+XB <- SlrDesignMatrix %*% modelQs1
+residualValQ1 <- RatingPtsMatrix -XB
+```
+
+```{r echo=FALSE, eval=FALSE}
+#Checking using linear regression
+modelQs1lm <- lm(RatingPts~PctComp, data=d)
+print(modelQs1lm)
+summary(modelQs1lm)
+#Accurate results = PROVED
+```
+<br/>
+
++ The Observation Vector is: **`RatingPtsMatrix`**
++ The Design Matrix is: **`SlrDesignMatrix`**
++ The Parameter Vector is: **`modelQs1`**
++ The Residual Vector is: **`residualValQ1`** 
+
+<br/>
+
+The prediction equation is as follows: <br/>
+<center>$$y = \beta_0  + \beta_1*x$$</center>
+<center>$$RatingPts = \beta_0  + \beta_1*PctComp$$</center>
+<center>$$RatingPts = `r modelQs1[1]`  + (`r modelQs1[2]` * PctComp)$$</center>
+
+## Question 2
+Create a Least Square model to relate the dependent variable quarterback rating to the percentage of completions (Pct Comp) and interceptions. (Pct Int)
+
+### Solution
+
+We will separate the required columns and create the **"Observation Vector"** and **"Design Matrix"** to find the relavant **"Parameter Vector"**.
+```{r}
+#Seperating PctInt
+PctIntCol <- d[,13]
+
+#Reading in PctComp, PctInt as Design Matrix 
+PctIntAppend <- data.matrix(PctIntCol)
+MlrDesignMatrix <- cbind(PctCompOne,PctCompAppend,PctIntAppend)
+  
+#Calculating Least Square Model
+library('MASS')
+modelQs2 <- ginv(MlrDesignMatrix)%*%RatingPtsMatrix
+print(modelQs2)
+```
+
+```{r}
+#Finding the residual vector
+XB <- MlrDesignMatrix %*% modelQs2
+residualValQ2 <- RatingPtsMatrix -XB
+```
+
+```{r echo=FALSE, eval=FALSE}
+#Checking using linear regression
+modelQs2lm <- lm(RatingPts~PctComp + PctInt, data=d)
+print(modelQs2lm)
+summary(modelQs2lm)
+#Accurate results = PROVED
+```
+
+<br/>
+
++ The Observation Vector is: **`RatingPtsMatrix`**
++ The Design Matrix is: **`MlrDesignMatrix`**
++ The Parameter Vector is: **`modelQs2`**
++ The Residual Vector is: **`residualValQ2`** 
+
+<br/>
+
+The prediction equation is as follows: <br/>
+<center>$$y = \beta_0  + \beta_1*x + \beta_2*x^2$$</center>
+<center>$$RatingPts = \beta_0  + \beta_1*PctComp + \beta_2*PctInt$$</center>
+<center>$$RatingPts = `r modelQs2[1]`  + (`r modelQs2[2]` * PctComp) + (`r modelQs2[3]` * PctInt)$$</center>
+## Question 3
+Determine the least square error (square root of sum of square errors) for models in part a and b. Does using an extra variable, namely percentage of interceptions, improve the accuracy of the model for this data set? Comment.
+
+### Solution
+
+#### Part 1: Finding Least square error of model in Question 1
+```{r}
+errQ1 <- norm(SlrDesignMatrix%*%modelQs1 - RatingPtsMatrix, '2')
+#print(errQ1)
+```
+
+The Least square error of model in Question 1 is: **`r errQ1`**
+
+#### Part 2: Finding Least square error of model in Question 2
+```{r}
+errQ2 <- norm(MlrDesignMatrix%*%modelQs2 - RatingPtsMatrix, '2')
+#print(errQ2)
+```
+
+The Least square error of model in Question 2 is: **`r errQ2`**
+
+
+#### Part 3: Does using an extra variable, namely percentage of interceptions, improve the accuracy of the model for this data set?
+Yes, it increases the accuracy of the model. As it can be clearly seen that the value of the error goes down.
+
+## Question 4
+Use your models in part a and b to predict the rating for a quarterback with percentage of completions of 60%, and percentage of interceptions of 3%.
+
+### Solution
+
+#### Part 1: Finding rating for a quarterback with percentage of completions of 60% using model made in Question 1
+
+```{r}
+predictionPart1 <- c(1, 60)%*%modelQs1
+#print(predictionPart1)
+```
+
+The predicted value is: **`r predictionPart1`**
+
+
+#### Part 2: Finding rating for a quarterback with percentage of interceptions of 3% using model made in Question 2
+
+```{r}
+predictionPart2 <- c(1,60, 3)%*%modelQs2
+#print(predictionPart2)
+```
+
+The predicted value is: **`r predictionPart2`**
