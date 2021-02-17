@@ -1,0 +1,55 @@
+---
+title: "PCA Assignment"
+author: "Karan Pillay"
+date: "14/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+dataset1 = longley[,1:5]
+head(longley)
+```
+```{r}
+library(pracma)
+library(MASS)
+library(psych)
+```
+
+
+```{r }
+
+myPCA <- function(dataset1, n) {
+  d <- t(dataset1)             #Transpose the data set
+  mean = rowMeans(d)                  # Mean of each column
+  B = sweep(d, 1, mean)               # Mean deviation matrix form
+  S = 1/(ncol(d)-1)*B%*%t(B)          # Covariance matrix
+  V = eigen(S)$vectors                # Eigen vectors of matrix S
+  Y=t(V)%*%B 
+  var_percentage = (eigen(S)$values)/sum(eigen(S)$values) # Percentage of total variance
+  x = 0
+  num = 0
+  for(i in var_percentage){
+    if (x <= n){
+      x = x+i
+      num = num+1
+    }
+  }
+  
+  number = num 
+  
+  PCA = V[,1:num]                   # Principal components
+  
+  transformed = t(Y)[,1:num]        # Transformed dataset
+  
+  final_list <- list(number=num, PCA=PCA, transformed=transformed)
+  return(final_list)
+            
+}
+
+myPCA(dataset1, 0.98)
+
+```
